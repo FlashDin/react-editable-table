@@ -79,9 +79,17 @@ const EditableTable: React.FC<Props> = ({columns, data, rowHeights}) => {
         const start = (numberPage - 1) * numberLimit;
         const stop = (numberPage * numberLimit) - 1;
         return Array.from({length: (stop - start) / step + 1}, (_, i) => start + (i * step))
-            .map((v: number) => ({
-                [v]: rowHeights[v] || 20,
-            }))
+            .map((v: number) => {
+                let val = 0;
+                if (v === 0) {
+                    val = 40;
+                } else {
+                    val = rowHeights[v - 1];
+                }
+                return {
+                    [v]: val || 20,
+                };
+            })
             .reduce((acc, item, i) => {
                 acc[i + start] = item[i + start]; // Or set any value you need
                 return acc;
