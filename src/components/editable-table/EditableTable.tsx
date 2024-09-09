@@ -21,7 +21,7 @@ const EditableTable: React.FC<Props> = ({columns, data, rowHeights}) => {
 
     const numbers: RowHeight = Array.from({length: 100}, (_, i) => i)
         .map((v: number) => ({
-            [v]: rowHeights[v],
+            [v]: rowHeights[v] || 20,
         }))
         .reduce((acc, item, i) => {
             acc[i] = item[i]; // Or set any value you need
