@@ -39,25 +39,27 @@ const EditableTable: React.FC<Props> = ({columns, data, rowHeights}) => {
     }, [alphabetPage]);
 
     useEffect(() => {
-        const dataSize = data.length;
-        setMData(Object.keys(numbers)
-            .map((v: string, i: number) => {
-                const res = alphabets.reduce((acc, item) => {
-                    acc[item.key] = '';
-                    return acc;
-                }, {} as any);
-                if (i === 0) {
-                    columns.forEach((v, i) => {
-                        res[alphabets[i].key] = v.label;
-                    });
-                } else if (i <= dataSize) {
-                    const currentData = data[i - 1];
-                    Object.keys(currentData).forEach((v, i) => {
-                        res[alphabets[i].key] = currentData[v];
-                    });
-                }
-                return res;
-            }));
+        if (alphabets) {
+            const dataSize = data.length;
+            setMData(Object.keys(numbers)
+                .map((v: string, i: number) => {
+                    const res = alphabets.reduce((acc, item) => {
+                        acc[item.key] = '';
+                        return acc;
+                    }, {} as any);
+                    if (i === 0) {
+                        columns.forEach((v, i) => {
+                            res[alphabets[i].key] = v.label;
+                        });
+                    } else if (i <= dataSize) {
+                        const currentData = data[i - 1];
+                        Object.keys(currentData).forEach((v, i) => {
+                            res[alphabets[i].key] = currentData[v];
+                        });
+                    }
+                    return res;
+                }));
+        }
     }, [numbers, alphabets]);
 
     const createAlphabet = () => {
