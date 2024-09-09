@@ -3,6 +3,7 @@ import Header from "./Header";
 import Body from "./Body";
 import generateAlphabets from "../../functions/GenerateAlphabet";
 import {Col, RowHeight} from "../../types/type";
+import ScrollComponent from "../scroll-component/ScrollComponent";
 
 interface Props {
     columns: Array<Col>;
@@ -11,21 +12,6 @@ interface Props {
 }
 
 const EditableTable: React.FC<Props> = ({columns, data, rowHeights}) => {
-
-    const [parentWidth, setParentWidth] = useState<number>(0);
-    const [parentHeight, setParentHeight] = useState<number>(0);
-
-    useEffect(() => {
-        const elm = document.getElementById('table-resizer');
-
-        // Check if the element exists
-        if (elm) {
-            const pw: number = elm.parentElement?.offsetWidth || 0;
-            const ph: number = elm.parentElement?.offsetHeight || 0;
-            setParentWidth(pw);
-            setParentHeight(ph);
-        }
-    }, []);
 
     const alphabets: Array<Col> = generateAlphabets("A", "Z").map((v: string) => ({
         key: v,
@@ -64,20 +50,12 @@ const EditableTable: React.FC<Props> = ({columns, data, rowHeights}) => {
         });
 
     return (
-        <div id={'table-resizer'} className={'overflow-auto'} style={{
-            width: parentWidth,
-            height: parentHeight
-        }}>
-            {parentWidth <= 0 && parentHeight <= 0 ? (
-                <div className={'w-full text-center'}>Please use div as parent and set width & height</div>) : (
-                <div>
-                    <table className="border-collapse border border-gray-400">
-                        <Header columns={alphabets}/>
-                        <Body columns={alphabets} dataColumns={columns} data={mData} rowHeights={numbers}/>
-                    </table>
-                </div>
-            )}
-        </div>
+        <ScrollComponent>
+            <table className="border-collapse border border-gray-400">
+                <Header columns={alphabets}/>
+                <Body columns={alphabets} dataColumns={columns} data={mData} rowHeights={numbers}/>
+            </table>
+        </ScrollComponent>
     );
 };
 
