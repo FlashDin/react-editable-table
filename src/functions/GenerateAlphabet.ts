@@ -18,7 +18,7 @@ function getAlphabetCode(str: string): number {
     return code;
 }
 
-function getAlphabetFromCode(code: number): string {
+export function getAlphabetFromCode(code: number): string {
     let str = '';
     while (code > 0) {
         code--;

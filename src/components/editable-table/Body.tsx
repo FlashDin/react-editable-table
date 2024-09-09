@@ -3,17 +3,17 @@ import {Col, RowHeight} from "../../types/type";
 
 interface Props {
     columns: Array<Col>;
-    dataColumns: Array<Col>;
     data: Array<any>;
     // setData: React.Dispatch<React.SetStateAction<Array<any>>>;
     rowHeights: RowHeight;
     // setRowHeights: React.Dispatch<React.SetStateAction<Array<any>>>;
 }
 
-const Body: React.FC<Props> = ({columns, dataColumns, data, rowHeights}) => {
+const Body: React.FC<Props> = ({columns, data, rowHeights}) => {
 
-    const [dt, setDt] = useState<Array<any>>(data);
-    const [rh, setRh] = useState<RowHeight>(rowHeights);
+    const [cols, setCols] = useState<Array<Col>>([]);
+    const [dt, setDt] = useState<Array<any>>([]);
+    const [rh, setRh] = useState<RowHeight>({});
 
     const [editIndex, setEditIndex] = useState<number | null>(null);
     const [editKey, setEditKey] = useState<any>(null);
@@ -27,6 +27,18 @@ const Body: React.FC<Props> = ({columns, dataColumns, data, rowHeights}) => {
     const [isDraggingRowResize, setIsDraggingRowResize] = useState<boolean>(false); // Track if row is being dragged
     const [draggingRowStartY, setDraggingRowStartY] = useState<number | null>(null);
     const [draggingRowHeight, setDraggingRowHeight] = useState<number | null>(null);
+
+    useEffect(() => {
+        setCols(columns);
+    }, [columns]);
+
+    useEffect(() => {
+        setDt(data);
+    }, [data]);
+
+    useEffect(() => {
+        setRh(rowHeights);
+    }, [rowHeights]);
 
     useEffect(() => {
         if (editKey && inputRef.current && editIndex !== null) {
@@ -198,7 +210,7 @@ const Body: React.FC<Props> = ({columns, dataColumns, data, rowHeights}) => {
                         />
                     </>
                 </td>
-                {columns.map((column: any) => (
+                {cols.map((column: any) => (
                     <td key={column.key} className="border border-gray-300">
                         {isEditing(index, column.key) ? (
                             <textarea

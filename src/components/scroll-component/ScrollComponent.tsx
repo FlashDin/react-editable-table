@@ -1,10 +1,12 @@
-import React, {ReactNode, useEffect, useRef, useState} from 'react';
+import React, {ReactNode, useRef, useCallback, useState, useEffect} from 'react';
 
 interface ScrollComponentProps {
     children: ReactNode; // Accepts any React nodes as children
+    onScrollXEnd: () => void; // Callback to load more data
+    onScrollYEnd: () => void; // Callback to load more data
 }
 
-const ScrollComponent: React.FC<ScrollComponentProps> = ({ children }) => {
+const ScrollComponent: React.FC<ScrollComponentProps> = ({children, onScrollXEnd, onScrollYEnd}) => {
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const [parentHeight, setParentHeight] = useState<number>(0);
@@ -14,10 +16,24 @@ const ScrollComponent: React.FC<ScrollComponentProps> = ({ children }) => {
 
         // Check if the element exists
         if (elm) {
-            const ph: number = elm.parentElement?.offsetHeight || 0;
+            const ph: number = elm.parentElement?.parentElement?.offsetHeight || 0;
             setParentHeight(ph);
         }
     }, []);
+
+    const handleScroll = useCallback(() => {
+        const container = scrollRef.current;
+        if (container) {
+            const {scrollLeft, scrollWidth, clientWidth} = container;
+            if (scrollLeft + clientWidth >= scrollWidth - 10) { // Threshold to trigger load
+                onScrollXEnd();
+            }
+            const {scrollTop, scrollHeight, clientHeight} = container;
+            if (scrollTop + clientHeight >= scrollHeight - 10) { // Threshold to trigger load
+                onScrollYEnd();
+            }
+        }
+    }, [onScrollXEnd, onScrollYEnd]);
 
     const scrollLeft = () => {
         if (scrollRef.current) {
@@ -45,6 +61,7 @@ const ScrollComponent: React.FC<ScrollComponentProps> = ({ children }) => {
                 style={{
                     height: parentHeight
                 }}
+                onScroll={handleScroll}
             >
                 {children}
             </div>

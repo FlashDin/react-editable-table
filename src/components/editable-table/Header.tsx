@@ -8,13 +8,17 @@ interface Props {
 
 const Header: React.FC<Props> = ({columns}) => {
 
-    const [cols, setCols] = useState<Array<Col>>(columns); // Track dragged column
+    const [cols, setCols] = useState<Array<Col>>([]); // Track dragged column
     const [draggedColIndex, setDraggedColIndex] = useState<number | null>(null); // Track dragged column
     const [isDraggingColumn, setIsDraggingColumn] = useState<boolean>(false); // Track if row is being dragged
 
     const [isDraggingColumnResize, setIsDraggingColumnResize] = useState<string | null>(null);
     const [draggingStartX, setDraggingStartX] = useState<number | null>(null);
     const [draggingColumnWidth, setDraggingColumnWidth] = useState<number | null>(null);
+
+    useEffect(() => {
+        setCols(columns);
+    }, [columns]);
 
     // Drag event handlers
     const handleColumnDragStart = (index: number) => {
