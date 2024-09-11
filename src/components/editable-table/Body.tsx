@@ -180,16 +180,22 @@ const Body: React.FC<Props> = ({columns, data, rowHeights}) => {
     const handleCellMouseDown = useCallback((cellId: string) => {
         setIsCellSelecting(true);
         startCellRef.current = cellId;
-        // Toggle selection if Shift key is pressed
-        setSelectedCells(prev => {
-            const newSelection = new Set(prev);
-            if (((window.event as KeyboardEvent)?.shiftKey && newSelection.has(cellId)) || newSelection.has(cellId)) {
-                newSelection.delete(cellId); // Deselect if Shift key is pressed and cell is already selected
-            } else {
-                newSelection.add(cellId); // Select cell
-            }
-            return newSelection;
-        });
+
+        if ((window.event as KeyboardEvent)?.shiftKey) {
+            // If Shift key is pressed, start a selection range
+            setSelectedCells(prev => {
+                const newSelection = new Set(prev);
+                if (newSelection.has(cellId)) {
+                    newSelection.delete(cellId); // Unselect cell if it's already selected
+                } else {
+                    newSelection.add(cellId); // Select cell
+                }
+                return newSelection;
+            });
+        } else {
+            // Otherwise, clear selection and select this cell
+            setSelectedCells(new Set([cellId]));
+        }
     }, []);
 
     const handleCellMouseEnter = useCallback((cellId: string) => {
@@ -213,11 +219,26 @@ const Body: React.FC<Props> = ({columns, data, rowHeights}) => {
         };
     }, [handleCellMouseUp]);
 
+    const handleCellClick = useCallback((cellId: string) => {
+        if (!isCellSelecting) {
+            // Handle single cell selection/deselection
+            setSelectedCells(prev => {
+                const newSelection = new Set(prev);
+                if (newSelection.has(cellId)) {
+                    newSelection.add(cellId); // Select cell
+                } else {
+                    newSelection.delete(cellId); // Deselect cell
+                }
+                return newSelection;
+            });
+        }
+    }, [isCellSelecting]);
+
     return (
         <tbody>
         {dt.map((row, rowIndex) => (
-            <tr key={row.id}>
-                <td key={'idx'}
+            <tr key={rowIndex}>
+                <td key={rowIndex}
                     draggable={!isDraggingRowResize}
                     onDragStart={() => {
                         if (!isDraggingRowResize) {
@@ -257,6 +278,8 @@ const Body: React.FC<Props> = ({columns, data, rowHeights}) => {
                             className={`${selectedCells.has(cellId) ? 'border-blue-400 border-2' : 'border-gray-300 border'}`}
                             onMouseDown={() => handleCellMouseDown(cellId)}
                             onMouseEnter={() => handleCellMouseEnter(cellId)}
+                            onMouseUp={handleCellMouseUp}
+                            onClick={() => handleCellClick(cellId)}
                         >
                             {isEditing(rowIndex, column.key) ? (
                                 <textarea

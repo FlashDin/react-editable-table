@@ -114,7 +114,7 @@ const Header: React.FC<Props> = ({columns}) => {
     return (
         <thead>
         <tr>
-            <th className={`border border-gray-300 bg-gray-200 text-center cursor-default`}>#</th>
+            <th className={`border border-gray-300 bg-gray-200 text-center cursor-default`}></th>
             {cols.map((column: any, index: number) => (
                 <th
                     key={column.key}
