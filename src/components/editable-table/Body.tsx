@@ -1,4 +1,4 @@
-import React, {useState, ChangeEvent, KeyboardEvent, useRef, useEffect} from 'react';
+import React, {useState, ChangeEvent, useRef, useEffect, useCallback} from 'react';
 import {Col, RowHeight} from "../../types/type";
 
 interface Props {
@@ -27,6 +27,10 @@ const Body: React.FC<Props> = ({columns, data, rowHeights}) => {
     const [isDraggingRowResize, setIsDraggingRowResize] = useState<boolean>(false); // Track if row is being dragged
     const [draggingRowStartY, setDraggingRowStartY] = useState<number | null>(null);
     const [draggingRowHeight, setDraggingRowHeight] = useState<number | null>(null);
+
+    const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
+    const [isCellSelecting, setIsCellSelecting] = useState(false);
+    const startCellRef = useRef<string | null>(null);
 
     useEffect(() => {
         setCols(columns);
@@ -173,15 +177,51 @@ const Body: React.FC<Props> = ({columns, data, rowHeights}) => {
         };
     }, [isDraggingRowResize]);
 
+    const handleCellMouseDown = useCallback((cellId: string) => {
+        setIsCellSelecting(true);
+        startCellRef.current = cellId;
+        // Toggle selection if Shift key is pressed
+        setSelectedCells(prev => {
+            const newSelection = new Set(prev);
+            if (((window.event as KeyboardEvent)?.shiftKey && newSelection.has(cellId)) || newSelection.has(cellId)) {
+                newSelection.delete(cellId); // Deselect if Shift key is pressed and cell is already selected
+            } else {
+                newSelection.add(cellId); // Select cell
+            }
+            return newSelection;
+        });
+    }, []);
+
+    const handleCellMouseEnter = useCallback((cellId: string) => {
+        if (isCellSelecting && startCellRef.current) {
+            const newSelection = new Set<string>(selectedCells);
+            // For simplicity, we add all hovered cells to selection
+            newSelection.add(cellId);
+            setSelectedCells(newSelection);
+        }
+    }, [isCellSelecting, selectedCells]);
+
+    const handleCellMouseUp = useCallback(() => {
+        setIsCellSelecting(false);
+    }, []);
+
+    useEffect(() => {
+        // Add event listener to handle mouse release outside table
+        document.addEventListener('mouseup', handleCellMouseUp);
+        return () => {
+            document.removeEventListener('mouseup', handleCellMouseUp);
+        };
+    }, [handleCellMouseUp]);
+
     return (
         <tbody>
-        {dt.map((row, index) => (
+        {dt.map((row, rowIndex) => (
             <tr key={row.id}>
                 <td key={'idx'}
                     draggable={!isDraggingRowResize}
                     onDragStart={() => {
                         if (!isDraggingRowResize) {
-                            handleRowDragStart(index);
+                            handleRowDragStart(rowIndex);
                         }
                     }}
                     onDragOver={(e) => {
@@ -191,50 +231,57 @@ const Body: React.FC<Props> = ({columns, data, rowHeights}) => {
                     }}
                     onDrop={() => {
                         if (!isDraggingRowResize) {
-                            handleRowDrop(index);
+                            handleRowDrop(rowIndex);
                         }
                     }}
                     className={`border border-gray-300 bg-gray-200 text-center ${isDraggingRow ? 'cursor-grabbing' : 'cursor-default'}`}
-                    style={{height: `${rh[index] || 40}px`}}
+                    style={{height: `${rh[rowIndex] || 40}px`}}
                 >
                     <>
                         <div
                             className="w-full py-2 px-4"
-                            style={{height: `${rh[index] || 40}px`}}
+                            style={{height: `${rh[rowIndex] || 40}px`}}
                         >
-                            {1 + index}
+                            {1 + rowIndex}
                         </div>
                         <div
                             className="block cursor-row-resize w-full h-1"
-                            onMouseDown={(e) => handleRowMouseDownResize(e, index)}
+                            onMouseDown={(e) => handleRowMouseDownResize(e, rowIndex)}
                         />
                     </>
                 </td>
-                {cols.map((column: any) => (
-                    <td key={column.key} className="border border-gray-300">
-                        {isEditing(index, column.key) ? (
-                            <textarea
-                                value={editValue}
-                                onChange={(e) => handleChange(index, column.key, e)}
-                                onKeyPress={(e) => handleKeyPress(index, column.key, e)}
-                                onBlur={(e) => handleBlur(index, column.key, e)}
-                                className="w-full py-2 px-4 outline-none"
-                                ref={inputRef}
-                                style={{height: `${rh[index] || 40}px`}}
-                            />
-                        ) : (
-                            <>
-                                <div
-                                    onClick={(e) => handleIsEditing(e, index, column, row)}
-                                    className="w-full py-2 px-4 hover:bg-gray-100 whitespace-pre-line"
-                                    style={{height: `${rh[index] || 40}px`}}
-                                >
-                                    {row[column.key]}
-                                </div>
-                            </>
-                        )}
-                    </td>
-                ))}
+                {cols.map((column: Col, cellIndex: number) => {
+                    const cellId: string = `${rowIndex}-${cellIndex}`;
+                    return (
+                        <td key={cellId}
+                            className={`${selectedCells.has(cellId) ? 'border-blue-400 border-2' : 'border-gray-300 border'}`}
+                            onMouseDown={() => handleCellMouseDown(cellId)}
+                            onMouseEnter={() => handleCellMouseEnter(cellId)}
+                        >
+                            {isEditing(rowIndex, column.key) ? (
+                                <textarea
+                                    value={editValue}
+                                    onChange={(e) => handleChange(rowIndex, column.key, e)}
+                                    onKeyPress={(e) => handleKeyPress(rowIndex, column.key, e)}
+                                    onBlur={(e) => handleBlur(rowIndex, column.key, e)}
+                                    className="w-full py-2 px-4 outline-none"
+                                    ref={inputRef}
+                                    style={{height: `${rh[rowIndex] || 40}px`}}
+                                />
+                            ) : (
+                                <>
+                                    <div
+                                        onDoubleClick={(e) => handleIsEditing(e, rowIndex, column, row)}
+                                        className="w-full py-2 px-4 hover:bg-gray-100 whitespace-pre-line"
+                                        style={{height: `${rh[rowIndex] || 40}px`}}
+                                    >
+                                        {row[column.key]}
+                                    </div>
+                                </>
+                            )}
+                        </td>
+                    );
+                })}
             </tr>
         ))}
         </tbody>
