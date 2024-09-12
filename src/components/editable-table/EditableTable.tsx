@@ -136,11 +136,12 @@ const EditableTable: React.FC<Props> = ({columns, data, rowHeights}) => {
 
     return (
         <div className={'relative'}>
+            <input type="text" className={'w-full p-2 border my-1'}/>
             {loading && <div
                 className={'absolute w-full h-full pt-36 text-center text-white bg-black bg-opacity-50 z-40'}>Loading...</div>}
             <ScrollComponent onScrollXEnd={() => setAlphabetPage(prevState => (prevState + 1))}
                              onScrollYEnd={() => setNumberPage(prevState => (prevState + 1))}>
-                <table className="border-collapse border border-gray-400">
+                <table className="border-collapse border border-gray-400 no-select">
                     <Header columns={alphabets}/>
                     <Body columns={alphabets} data={mData} rowHeights={numbers}/>
                 </table>

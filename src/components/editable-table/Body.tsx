@@ -9,6 +9,12 @@ interface Props {
     // setRowHeights: React.Dispatch<React.SetStateAction<Array<any>>>;
 }
 
+interface CopasVal {
+    key: string;
+    row: number;
+    value: any;
+}
+
 const Body: React.FC<Props> = ({columns, data, rowHeights}) => {
 
     const [cols, setCols] = useState<Array<Col>>([]);
@@ -28,9 +34,12 @@ const Body: React.FC<Props> = ({columns, data, rowHeights}) => {
     const [draggingRowStartY, setDraggingRowStartY] = useState<number | null>(null);
     const [draggingRowHeight, setDraggingRowHeight] = useState<number | null>(null);
 
+    const [selectedBeforeCells, setSelectedBeforeCells] = useState<Set<string>>(new Set());
     const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
     const [isCellSelecting, setIsCellSelecting] = useState(false);
     const startCellRef = useRef<string | null>(null);
+    const [copiedCellContent, setCopiedCellContent] = useState<CopasVal | null>(null);
+    const [cutCellContent, setCutCellContent] = useState<CopasVal | null>(null);
 
     useEffect(() => {
         setCols(columns);
@@ -178,6 +187,7 @@ const Body: React.FC<Props> = ({columns, data, rowHeights}) => {
     }, [isDraggingRowResize]);
 
     const handleCellMouseDown = useCallback((cellId: string) => {
+        window.getSelection()?.removeAllRanges();
         setIsCellSelecting(true);
         startCellRef.current = cellId;
 
@@ -226,13 +236,104 @@ const Body: React.FC<Props> = ({columns, data, rowHeights}) => {
                 const newSelection = new Set(prev);
                 if (newSelection.has(cellId)) {
                     newSelection.add(cellId); // Select cell
-                } else {
-                    newSelection.delete(cellId); // Deselect cell
                 }
                 return newSelection;
             });
         }
     }, [isCellSelecting]);
+
+    const handleCellKeyDown = useCallback((cellId: string, content: CopasVal, event: React.KeyboardEvent) => {
+        if ((event.ctrlKey || event.metaKey) && event.key === 'x') {
+            event.preventDefault();
+            handleCellCut(cellId, content);
+        } else if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
+            event.preventDefault();
+            handleCellCopy(cellId, content);
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            handleCleanClipboard();
+        }
+    }, []);
+
+    const handleCellContextMenu = useCallback((cellId: string, content: CopasVal, event: React.MouseEvent) => {
+        event.preventDefault();
+        // if (event.ctrlKey || event.metaKey) { // Ctrl + Click or Cmd + Click for cut
+        //     handleCellCut(cellId, content);
+        // } else { // Right-click to copy
+        //     handleCellCopy(cellId, content);
+        // }
+    }, []);
+
+    const handleCellCopy = (cellId: string, content: CopasVal) => {
+        setSelectedBeforeCells(prevState => {
+            const newSelection = new Set(prevState);
+            newSelection.add(cellId);
+            return newSelection;
+        });
+        setCutCellContent(null);
+        setCopiedCellContent(content);
+    };
+
+    const handleCellCut = (cellId: string, content: CopasVal) => {
+        setSelectedBeforeCells(prevState => {
+            const newSelection = new Set(prevState);
+            newSelection.add(cellId);
+            return newSelection;
+        });
+        setCopiedCellContent(null);
+        setCutCellContent(content);
+    };
+
+    const handleCleanClipboard = () => {
+        setSelectedBeforeCells(new Set());
+        setCutCellContent(null);
+        setCopiedCellContent(null);
+    };
+
+    const handleCellPaste = useCallback((cellId: string) => {
+        if (copiedCellContent || cutCellContent) {
+            setDt(prevData => {
+                const newData = prevData;
+                const cellIds = cellId.split('-');
+                const rowIndex: number = Number(cellIds[0]);
+                const cellKey: string = cellIds[1];
+                if (cutCellContent) {
+                    newData[cutCellContent.row][cutCellContent.key] = '';
+                    newData[rowIndex][cellKey] = cutCellContent.value;
+                    handleCleanClipboard();
+                } else if (copiedCellContent) {
+                    newData[rowIndex][cellKey] = copiedCellContent.value;
+                    setCopiedCellContent(prevState => {
+                        if (prevState !== null) {
+                            return {
+                                key: prevState.key,
+                                row: prevState.row,
+                                value: prevState.value,
+                            };
+                        }
+                        return null;
+                    });
+                }
+                return newData;
+            });
+        }
+    }, [copiedCellContent, cutCellContent]);
+
+    useEffect(() => {
+        const handleCellKeyDown = (event: KeyboardEvent) => {
+            if ((event.ctrlKey || event.metaKey) && event.key === 'v') { // Ctrl+V or Cmd+V
+                event.preventDefault();
+                selectedCells.forEach((v: string) => {
+                    handleCellPaste(v);
+                });
+            }
+        };
+
+        document.addEventListener('keydown', handleCellKeyDown);
+        return () => {
+            document.removeEventListener('keydown', handleCellKeyDown);
+        };
+    }, [selectedCells, copiedCellContent, cutCellContent, handleCellPaste]);
 
     return (
         <tbody>
@@ -272,14 +373,19 @@ const Body: React.FC<Props> = ({columns, data, rowHeights}) => {
                     </>
                 </td>
                 {cols.map((column: Col, cellIndex: number) => {
-                    const cellId: string = `${rowIndex}-${cellIndex}`;
+                    const cellId: string = `${rowIndex}-${column.key}`;
                     return (
-                        <td key={cellId}
-                            className={`${selectedCells.has(cellId) ? 'border-blue-400 border-2' : 'border-gray-300 border'}`}
+                        <td id={cellId} key={cellId}
+                            className={`${selectedCells.has(cellId) ? 'border-blue-400 border-2' : (selectedBeforeCells.has(cellId) && (copiedCellContent || cutCellContent)) ? 'border-dashed border-blue-400 border-2' : 'border-gray-300 border'}`}
                             onMouseDown={() => handleCellMouseDown(cellId)}
                             onMouseEnter={() => handleCellMouseEnter(cellId)}
                             onMouseUp={handleCellMouseUp}
                             onClick={() => handleCellClick(cellId)}
+                            onContextMenu={(e) => handleCellContextMenu(cellId, {
+                                key: column.key,
+                                row: rowIndex,
+                                value: row[column.key]
+                            }, e)}
                         >
                             {isEditing(rowIndex, column.key) ? (
                                 <textarea
@@ -293,13 +399,18 @@ const Body: React.FC<Props> = ({columns, data, rowHeights}) => {
                                 />
                             ) : (
                                 <>
-                                    <div
+                                    <textarea
                                         onDoubleClick={(e) => handleIsEditing(e, rowIndex, column, row)}
-                                        className="w-full py-2 px-4 hover:bg-gray-100 whitespace-pre-line"
+                                        className="w-full py-2 px-4 outline-none resize-none"
                                         style={{height: `${rh[rowIndex] || 40}px`}}
-                                    >
-                                        {row[column.key]}
-                                    </div>
+                                        onKeyDown={(e) => handleCellKeyDown(cellId, {
+                                            key: column.key,
+                                            row: rowIndex,
+                                            value: row[column.key]
+                                        }, e)}
+                                        readOnly
+                                        value={row[column.key]}
+                                    />
                                 </>
                             )}
                         </td>
