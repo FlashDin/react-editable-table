@@ -265,6 +265,7 @@ const Body: React.FC<Props> = ({columns, data, rowHeights}) => {
     }, []);
 
     const handleCellCopy = (cellId: string, content: CopasVal) => {
+        handleCleanClipboard();
         setSelectedBeforeCells(prevState => {
             const newSelection = new Set(prevState);
             newSelection.add(cellId);
@@ -275,6 +276,7 @@ const Body: React.FC<Props> = ({columns, data, rowHeights}) => {
     };
 
     const handleCellCut = (cellId: string, content: CopasVal) => {
+        handleCleanClipboard();
         setSelectedBeforeCells(prevState => {
             const newSelection = new Set(prevState);
             newSelection.add(cellId);
@@ -399,7 +401,7 @@ const Body: React.FC<Props> = ({columns, data, rowHeights}) => {
                                 />
                             ) : (
                                 <>
-                                    <textarea
+                                    <div
                                         onDoubleClick={(e) => handleIsEditing(e, rowIndex, column, row)}
                                         className="w-full py-2 px-4 outline-none resize-none"
                                         style={{height: `${rh[rowIndex] || 40}px`}}
@@ -408,9 +410,10 @@ const Body: React.FC<Props> = ({columns, data, rowHeights}) => {
                                             row: rowIndex,
                                             value: row[column.key]
                                         }, e)}
-                                        readOnly
-                                        value={row[column.key]}
-                                    />
+                                        tabIndex={0}
+                                    >
+                                        {row[column.key]}
+                                    </div>
                                 </>
                             )}
                         </td>
