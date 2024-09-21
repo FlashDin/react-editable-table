@@ -403,7 +403,7 @@ const Body: React.FC<Props> = ({columns, data, rowHeights}) => {
                                 <>
                                     <div
                                         onDoubleClick={(e) => handleIsEditing(e, rowIndex, column, row)}
-                                        className="w-full py-2 px-4 outline-none resize-none"
+                                        className="w-full py-2 px-4 whitespace-pre-line"
                                         style={{height: `${rh[rowIndex] || 40}px`}}
                                         onKeyDown={(e) => handleCellKeyDown(cellId, {
                                             key: column.key,
